@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="skyhookMap">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Skyhook Map</title>
+
+    <!-- jQuery-->
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+    <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous"> -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    <!-- AngularJS-->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.0/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.0/angular-animate.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-aria.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-messages.min.js"></script>
+
+    <!-- Google Maps API-->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB1v2UDfojY0OVnIO0vM3NvYzRNEYrRnIw"></script>
+
+    <script src="skyhookMap.js"></script>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 1%;
+      }
+      #content {
+        height: 100%;
+      }
+      #mapContainer {
+        height: 100%;
+      }
+      #map {
+        height: 100%;
+        box-shadow: 0px 0px 10px grey;
+      }
+      #graph {
+        height: 100%;
+      }
+      #listContainer {
+        height: 85%;
+        overflow: auto;
+      }
+      .recordCount {
+        text-align: center;
+        font-family: Impact, Charcoal, sans-serif;
+      }
+      table {
+        height: 100%;
+        font-size: 10px
+      }
+      .table-data {
+        width: 50%;
+      }
+      .neustar-green {
+        color:#009933;
+        font-weight:bold;
+        font-size:13px;
+      }
+      #modal {
+        height: 100%;
+        width: 99%;
+        position: absolute;
+        background-color: white;
+        opacity: 0.5;
+        padding-top: 29%;
+        top: 0px;
+      }
+      .progress {
+        width: 80%;
+        margin: auto;
+      }
+    </style>
+  </head>
+  <body ng-controller="skyhookMapController">
+    <div id="content" class="row">
+      <div id="graph" class="col-md-3">
+        <div>
+        <form ng-submit="goSkyhook()">
+          <div class="input-group">
+            <input id="ipaddress" type="text" class="form-control" placeholder="{{ipPlaceholder}}" ng-model="ipaddress">
+            <span class="input-group-btn">
+              <button class="btn btn-success recordCount" type="submit">Go Skyhook!</button>
+            </span>
+          </div>
+        </form>
+        </div>
+        <div class="input-group input-group-sm" id="fromDate">
+          <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i> From:</span>
+          <input datepicker class="form-control" type="text" placeholder="Select a Date" ng-model="defaultDate" ng-change="filterMarker()">
+        </div>
+        <h5 class="recordCount">No. of Records: {{ipAddresses.length}}</h5>
+        <div class="btn-group btn-group-justified btn-group-sm" role="group">
+            <div class="btn-group btn-group-xs" role="group">
+              <button type="button" class="btn btn-default" ng-click="sortBy('properties.ipDecimal')">
+                IP <span class="caret"></span>
+              </button>
+            </div>
+            <div class="btn-group btn-group-xs" role="group">
+              <button type="button" class="btn btn-default" ng-click="sortBy('properties.date')">
+                Date <span class="caret"></span>
+              </button>
+            </div>
+        </div>
+        <div id="listContainer">
+          <table class="table table-condensed table-hover">
+            <tr id="{{ip.properties.ip}}" ng-repeat="ip in ips | filter:dateFilter | orderBy:order as ipAddresses" ng-mouseover="mouseoverList(ip.properties.ip)" ng-class="neustarGreen(ip.properties.ip)">
+              <td class="table-data">{{ip.properties.ip}}</td>
+              <td class="table-data">{{ip.properties.date | date:'longDate'}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div id="mapContainer" class="col-md-9">
+        <div id="map"></div>
+      </div>
+    </div>
+    <div id="modal" class="row" ng-if="loading">
+      <div class="progress">
+        <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
